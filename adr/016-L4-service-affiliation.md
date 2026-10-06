@@ -8,7 +8,8 @@
 To archive modularization that is proposed in [RFC 008](../rfc/008-platform-mesh-modularization.md) the L4 Boundary must be clearly drawn by determining layer affiliation of each component.
 Without a clear distinction for each component we run into the risk not aligning the layer boundary with the actual goal of modularizing. Since the Portal is defined to be replaceable and optional, the boundary needs to be at the API Level that the Portal leverages to fetch and modify Data.
 
-As this ADR aims to decide only about the Layer association of service that could be L4, other services will not be discussed. This should be done in separate ADRs for L3 and L2.
+## Scope and Non-Goals
+As this ADR aims to decide only about the Layer association of services that could be L4, other services will not be discussed. This should be done in separate ADRs for L3 and L2.
 
 ## Decision Drivers
 - omittability without interrupting core functionality
@@ -29,10 +30,14 @@ The IAM UI is also deeply coupled with the microfrontend-pattern and just repres
 The Marketplace UI just as the IAM UI represents a microfrontend part of the current/default ui implementation.
 
 ### extension-manager-operator
-TODO
+The extension-manager-operator partially coupled with the microfrontend-Pattern, more specifically Luigi as the microfrontend framework, as it primarily manages the `ContentConfiguration` CRD but also defines `ProviderMetaData`.
+Even though the `ContentConfiguration` allows generic 'configurations' from a pure API perspective, the concrete validation implemented in the extension-manager-operator expects and validates these configuration as Luigi configurations.
+The Layer affiliation of the extension-manager-operator should be decided based on the association of the `ContentConfiguration` as an implementation detail of the current/default UI implementation or a core platform-mesh functionality.
+If it is the latter, the schema-validation and internal model currently implemented should be more generic and be configurable so the actual platform-mesh user may use it for their own portal implementation (without Luigi).
+The operator also defines `ProviderMetaData` which essentially imposes the same question as the `ContentConfiguration` due to it being unclear if the concept of provider MetaData being stored/managed by platform-mesh's services is a core feature or an implementation detail of the current/defalt ui implementation.
 
 ### terminal-controller-manager
-As the terminal controller managers primary use is watching `Terminal` CRD to provide pods to be used as remote terminals in the UI, it is clearly related to L4, even though it is neither coupled to the actual UI implementation (only provides WebSockets-Endpoint) nor to the microfrontend pattern. The functionality is already bound to a API-Boundry in form of the `Terminal` CRD, even though it could also be interpreted as a default UI implementation specific feature.
+As the terminal controller managers primary use is watching `Terminal` CRD to provide pods to be used as remote terminals in the UI, it is clearly related to L4, even though it is neither coupled to the actual UI implementation (only provides WebSockets-Endpoint) nor to the microfrontend pattern. The functionality is already bound to a API-Boundry in form of the `Terminal` CRD, even though it could also be interpreted as an implementation detail specific to the current/default implementation.
 
 #### terminal-controller-manager as L4 service
 Affiliating the terminal-controller-manager with L4 will allow a deployment without L4 (API-only) to completely omit this controller, as there is not need for remote-terminals in browsers via WebSockets without a Portal. On the other hand replacing L4 requires an implementation of a controller to manage the `Terminal` CRD or the implementation to provide a completly custom solution for remote terminal management/provision, if that feature is desired in the alternative UI implementation.
@@ -104,7 +109,8 @@ Con's:
 This is essentially the same variant as the 'gateway as L1 service' the the exeption that the service, even though being considered a L1-/Core-service, can be disabled when not needed. For example in API-only operation where direct interaction with `kubectl` is acceptable/desired. This does make an API-only deployment potentially more lightweight when the GraphQL-API is not needed, but at the same time adds complexity to deployments, breaks the API-Contract that L4 would depend on if deployed later and defies the clear affiliation of the service to L1, which in turn could mean that the gateway must define its own layer, that can be omitted/replaced, which would not align with RFC 008. Additionally when fully disabled remote cluster access would need to fully work around the current centrally managed solution handled via the `ClusterAccess` CRD.
 
 ### virtual-workspaces
-
+The decision for the virtual-workspaces service depends directly on the layer affiliation of the extension-manager-operator, as its only purpose is to compose data from the two CRD's `ContentConfiguration` and `ProviderMetadata` (and `ApiExports`'s, but this does not matter in the context of this decision).
+If the extension-manager-operator's CRDs are not considered core platform-mesh functionalities the principle of the served `MarketplaceEntry`'s is not as well.
 
 ### iam-service
 The IAM service essentially has the same scenarios as the kubernetes-graphql-gateway regarding it's api contract providing read- and write-functionality via GraphQL.
@@ -124,12 +130,21 @@ effectively ommited services in modular Setups without L4:
 
 Services that need to be modified to be clearly affiliated with L4 or L1:
 - extension-manager-operator
+    - when considering the `ContentConfiguration` a core principle of platform-mesh, it needs to be generalized/configurable to be used by any kind of UI implementation
+- virtual-workspaces
+    - entirely dependend on the extension-manager-operator affiliation
 
 UI-near Services that are **not** omitted and thus should be considered as L1-Services:
 - terminal-controller-manager
     - affiliating this service with L1 states the provided functionality of remote-terminals in ephemeral pods via the `Terminal` CRD as a core platform-mesh functionality rather then a specific feature of the default portal implementation
 - kubernetes-graphql-gateway
     - this should be a L1 service that fulfills the API-Contracts defined by the GraphQL-Schemas, it should not be able to be disabled so that the defined contract always holds
-- virtual-workspaces
 - iam-service
     - the iam-service is clearly not a L4 service thus should be considered as L1 in the scope of this ADR even though in following ADRs for L2 and L3 affiliation could change to L2 or L3
+
+
+## Open Questions
+To finalize this ADR a consensus needs to be found about what is considered a "core platform-mesh" (L1) functionality an what is not:
+- `ContentConfiguration` and `ProviderMetaData`
+- `Terminal`
+- the marketplace principle in general (without specific focus on microfrontends to impement such a Marketplace)
