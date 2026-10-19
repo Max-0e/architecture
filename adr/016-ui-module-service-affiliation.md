@@ -22,7 +22,7 @@ As this ADR aims to decide only about the Module association of services that co
 To evaluate the affiliation of a service, this sections considers module-association with possible options:
 
 ### Portal
-The Portal should obviously be part of L4 as it is deeply coupled with OpenMFP and just represents the default implementation of a solution to operate platform mesh via a graphical user interface
+The Portal should obviously be part of the UI module as it is deeply coupled with OpenMFP and just represents the default implementation of a solution to operate platform mesh via a graphical user interface
 
 ### IAM UI
 The IAM UI is also deeply coupled with the microfrontend-pattern and just represents part of the current UI implementation for platform mesh.
@@ -46,7 +46,7 @@ This creates the opportunity to decouple `ContentConfiguration` & `ProviderMetaD
 In this case the reconciliation of `ContentConfiguration` CRs and the parts of the existing `ApiResourceSchema` as well as `ApiExport` are seperated from the `ProviderMetadata` and bundled in a seperate service called `content-configuration-controller-manager`.
 
 ##### The core part
-The `ProviderMetadata` CRD and therefore its `ApiResourceSchema` and `ApiExport` are seperated and moved into their own virtual-workspace decoupled from the `content-coniguration-controller-manager` and the vw for `ContentConfigurtaion`s. Naming would also have to be changed to affiliate the `ProviderMetadataResource` (formerly `providermetadatas.ui.platform-mesh.io`) to the marketplace rather than the ui to `providermetadatas.marketplace.platform-mesh.io`.
+The `ProviderMetadata` CRD and therefore its `ApiResourceSchema` and `ApiExport` are seperated and moved into their own virtual-workspace decoupled from the `content-coniguration-controller-manager` and the vw for `ContentConfiguration`s. Naming would also have to be changed to affiliate the `ProviderMetadataResource` (formerly `providermetadatas.ui.platform-mesh.io`) to the marketplace rather than the ui to `providermetadatas.marketplace.platform-mesh.io`.
 
 ### terminal-controller-manager
 As the terminal-controller-managers primary use is watching `Terminal` CRD to provide pods to be used as remote terminals in the UI, it is clearly related to the UI, even though it is neither coupled to the actual UI implementation (only provides WebSockets-Endpoint) nor to the microfrontend pattern. The functionality is already bound to a API-Boundry in form of the `Terminal` CRD, even though it could also be interpreted as an implementation detail specific to the current/default implementation. Since the service is disabled by default and its primary use being demos of Platform Mesh the functionality and usage of the `Terminal`-CRD is **not** a core Platform Mesh principle/functionality.
